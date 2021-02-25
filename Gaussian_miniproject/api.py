@@ -5,6 +5,28 @@ import time
 # API KEY
 API_key = "62b8e1f5175f87ba1db6d6968a7e3ac1"
 
+
+
+# Code obtained from https://openweathermap.org/api/one-call-api
+
+base_url = "https://api.openweathermap.org/data/2.5/onecall/timemachine?"
+latitude = input("Enter latitude : ")
+longitude = input("Enter longitude : ")
+current_time = int(time.time()) - 24*3600 # yesterday
+
+Final_url = base_url + "lat=" + latitude + "&lon=" + longitude + "&dt=" + str(current_time) + "&appid=" + API_key
+
+weather_data = requests.get(Final_url).json()
+
+# JSON data is difficult to visualize, so you need to pretty print
+pprint(weather_data)
+
+windspeed = weather_data['hourly'][12]['wind_speed'] #wind-speed, yesterday at 12
+
+
+
+
+"""
 # This stores the url
 base_url = "http://api.openweathermap.org/data/2.5/weather?"
 
@@ -21,20 +43,4 @@ weather_data = requests.get(Final_url).json()
 
 # JSON data is difficult to visualize, so you need to pretty print
 pprint(weather_data)
-
-
-# Code obtained from https://openweathermap.org/api/one-call-api
-
-base_url = "https://api.openweathermap.org/data/2.5/onecall/timemachine?"
-latitude = input("Enter latitude : ")
-longitude = input("Enter longitude : ")
-current_time = int(time.time()) - 24*3600 #within 5 days
-
-Final_url = base_url + "lat=" + latitude + "&lon=" + longitude + "&dt=" + str(current_time) + "&appid=" + API_key
-
-weather_data = requests.get(Final_url).json()
-
-# JSON data is difficult to visualize, so you need to pretty print
-pprint(weather_data)
-
-weather_data['hourly'][12]['temp']-weather_data['hourly'][0]['temp']
+"""
