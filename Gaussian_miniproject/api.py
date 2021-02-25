@@ -27,9 +27,9 @@ def WindSpeed(lat, lon, current_time):
 
 
 ## define the domain of the considered parameters
-lon = tuple(np.arange(13, 24, 0.1, dtype=np.int))
+lon = (13, 25)
 # print(n_estimators)
-lat = tuple(np.arange(63, 67, 0.1, dtype=np.int))
+lat = (63, 67)
 
 # define the dictionary for GPyOpt
 domain = [{'name': 'lon', 'type': 'continuous', 'domain': lon},
@@ -40,7 +40,9 @@ domain = [{'name': 'lon', 'type': 'continuous', 'domain': lon},
 ## note it should take a 2D ndarray but it is ok that it assumes only one point
 ## in this setting
 def objective_function(x):
-
+    param = x[0]
+    lat = round(param[0], 5)
+    lon = round(param[1], 5)
     # create the model
     model = WindSpeed(lat, lon, current_time)
 
@@ -58,7 +60,7 @@ opt.run_optimization(max_iter = 15)
 
 x_best = opt.X[np.argmin(opt.Y)]
 
-print("The best parameters obtained: longitude=" + str(x_best[0]) + ", latitude=" + str(x_best[1]))
+print("Coordinates with largest wind speed: longitude=" + str(x_best[0]) + ", latitude=" + str(x_best[1]))
 
 """
 # This stores the url
