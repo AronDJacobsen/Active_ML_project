@@ -9,6 +9,7 @@ import time, random, GPy, GPyOpt
 # API KEY
 API_key = "62b8e1f5175f87ba1db6d6968a7e3ac1"
 
+# HEJ PHILLIP, DIN DOVNE NØD!
 
 # Code obtained from https://openweathermap.org/api/one-call-api
 current_time = int(time.time()) - 24*3600 # yesterday
