@@ -1,12 +1,13 @@
 import requests
 from pprint import pprint
-import time
+
 import numpy as np
-import GPyOpt
+import matplotlib.pyplot as plt
+from sklearn.model_selection import ParameterSampler, RandomizedSearchCV, cross_val_score
+import time, random, GPy, GPyOpt
 
 # API KEY
 API_key = "62b8e1f5175f87ba1db6d6968a7e3ac1"
-
 
 
 # Code obtained from https://openweathermap.org/api/one-call-api
