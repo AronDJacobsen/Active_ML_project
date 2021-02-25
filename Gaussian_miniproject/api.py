@@ -27,7 +27,7 @@ def WindSpeed(lat, lon, current_time):
 
 
 ## define the domain of the considered parameters
-lon = (13, 25)
+lon = (-25, -13)
 # print(n_estimators)
 lat = (63, 67)
 
@@ -60,7 +60,7 @@ opt.run_optimization(max_iter = 15)
 
 x_best = opt.X[np.argmin(opt.Y)]
 
-print("Coordinates with largest wind speed: longitude=" + str(x_best[0]) + ", latitude=" + str(x_best[1]))
+print("Coordinates with largest wind speed: latitude=" + str(x_best[1]) + ", longitude=" + str(x_best[0]))
 
 """
 # This stores the url
