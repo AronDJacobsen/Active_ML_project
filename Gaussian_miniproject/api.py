@@ -1,5 +1,6 @@
 import requests
 from pprint import pprint
+import time
 
 # API KEY
 API_key = "62b8e1f5175f87ba1db6d6968a7e3ac1"
@@ -22,12 +23,14 @@ weather_data = requests.get(Final_url).json()
 pprint(weather_data)
 
 
+# Code obtained from https://openweathermap.org/api/one-call-api
+
 base_url = "https://api.openweathermap.org/data/2.5/onecall/timemachine?"
 latitude = input("Enter latitude : ")
 longitude = input("Enter longitude : ")
-time = 1613606400 + 12*3600 #within 5 days
+current_time = int(time.time()) - 24*3600 #within 5 days
 
-Final_url = base_url + "lat=" + latitude + "&lon=" + longitude + "&dt=" + str(time) + "&appid=" + API_key
+Final_url = base_url + "lat=" + latitude + "&lon=" + longitude + "&dt=" + str(current_time) + "&appid=" + API_key
 
 weather_data = requests.get(Final_url).json()
 
