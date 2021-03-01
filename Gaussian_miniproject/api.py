@@ -50,20 +50,33 @@ def objective_function(x):
 
     return - model # BO want to minimize this. Thus -
 
+# Do random assignment of initial latitude and longitude ...
+start_size = 50
+lat_rand, lon_rand = np.random.uniform(low=lat[0],high=lat[1], size=start_size), np.random.uniform(low=lon[0],high=lon[1], size=start_size)
+
+X_init = [list(x) for x in zip(lat_rand,lon_rand)]
+y_init = [objective_function([x]) for x in X_init]
+
+
 
 opt = GPyOpt.methods.BayesianOptimization(f=objective_function,  # function to optimize
-                                          domain=domain,  # box-constrains of the problem
-                                          acquisition_type='EI',  # Select acquisition function MPI, EI, LCB
+                                          domain=domain,
+                                          X=X_init, Y=y_init,# box-constrains of the problem
+                                          acquisition_type='LCB',  # Select acquisition function MPI, EI, LCB
                                           )
 
 opt.acquisition.exploration_weight=0.5
+# See documentation of GPyOpt.models.base.BOModel() to see kernel type
 
 opt.run_optimization(max_iter = 100)
 
 x_best = opt.X[np.argmin(opt.Y)]
+opt.plot_acquisition()
+
 
 print("Coordinates with largest wind speed: latitude=" + str(x_best[1]) + ", longitude=" + str(x_best[0]))
 
+"""
 # Plot of guesses
 lon_plot, lat_plot = zip(*opt.X)
 plt.plot(lon_plot, lat_plot, "--o")
@@ -71,24 +84,4 @@ xs = np.arange(len(lon_plot))
 for i, (x, y) in enumerate(zip(lon_plot, lat_plot)):
     plt.text(x, y, str(xs[i]+1), color="black", fontsize=12)
 plt.margins(0.1)
-
-
-
-"""
-# This stores the url
-base_url = "http://api.openweathermap.org/data/2.5/weather?"
-
-# This will ask the user to enter city ID
-#city_id = input("Enter a city ID : ")
-city_name = input("Enter a city name : ")
-
-# This is final url. This is concatenation of base_url, API_key and city_id
-#Final_url = base_url + "appid=" + API_key + "&id=" + city_id
-Final_url = base_url + "appid=" + API_key + "&q=" + city_name
-
-# this variable contain the JSON data which the API returns
-weather_data = requests.get(Final_url).json()
-
-# JSON data is difficult to visualize, so you need to pretty print
-pprint(weather_data)
 """
