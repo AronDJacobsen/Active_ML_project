@@ -8,7 +8,7 @@ import time, random, GPyOpt
 
 # API KEY
 # Remember to change key!
-API_key = "62b8e1f5175f87ba1db6d6968a7e3ac1"
+API_key = "22babb7b540a86c276bce682e671c110"
 
 # Code obtained from https://openweathermap.org/api/one-call-api
 current_time = int(time.time()) - 24*3600 # yesterday
@@ -76,9 +76,13 @@ def BO_parameter_opt(N, X_init = X_init, y_init = y_init, domain = domain, acqui
     cur_best_acq = None
     cur_best_exp = None
     cur_best_x = []
-
-    for a_function in acquisition_functions:
+    #BO_MPI_best, BO_EI_best, BO_LCB_best = np.zeros(N), np.zeros(N), np.zeros(N)
+    BO_bests = []
+    for j, a_function in enumerate(acquisition_functions):
+        cur_best_y_for_acq = 0
+        cur_best_ys_for_acq = np.zeros(len(y_init)+N)
         for i, exp_val in enumerate(exploration_values):
+
             opt = None
             print('-'*90)
             print("Currently running with " + a_function + " and an exploration weight of "+ str(exp_val))
@@ -89,13 +93,19 @@ def BO_parameter_opt(N, X_init = X_init, y_init = y_init, domain = domain, acqui
                                                       )
 
             opt.acquisition.exploration_weight=exp_val
+
             # See documentation of GPyOpt.models.base.BOModel() to see kernel type
 
+            random.seed(20)
             opt.run_optimization(max_iter = N)
 
             print("min =", np.min(opt.Y), "expval =", exp_val, "a_func = ", a_function)
             print("Location of minima: ", opt.X[np.argmin(opt.Y)])
             print("Step-index of minimum sample: ", np.argmin(opt.Y))
+
+            opt.plot_acquisition("bestModelPlot_" + a_function + "_expIter=" + str(i), label_x="Longitude",
+                                 label_y="Latitude")
+            opt.plot_convergence("bestConvergencePlot_" + a_function + "_expIter=" + str(i))
 
             if np.min(opt.Y) < cur_best_y:
                 cur_best_y = np.min(opt.Y)
@@ -104,6 +114,15 @@ def BO_parameter_opt(N, X_init = X_init, y_init = y_init, domain = domain, acqui
                 cur_best_exp = exp_val
                 cur_best_x = opt.X[np.argmin(opt.Y)]
                 print("Updated parameters!")
+
+            if np.min(opt.Y) < cur_best_y_for_acq:
+                cur_best_y_for_acq = np.min(opt.Y)
+                cur_best_ys_for_acq = opt.Y
+
+            if i == (len(exploration_values)-1):
+                BO_bests.append([np.min(cur_best_ys_for_acq[:(k + len(y_init))]) for k in range(1,N + 1)])
+
+
             '''
             x_best = opt.X[np.argmin(opt.Y)]
             opt.plot_acquisition("modelPlot_"+a_function+"_expvalNo="+str(i), label_x="Longitude", label_y="Latitude")
@@ -113,7 +132,7 @@ def BO_parameter_opt(N, X_init = X_init, y_init = y_init, domain = domain, acqui
                   + "\nAcquistion function = "+a_function + ", exploration weight = " + str(exp_val))
             print("="*90)
             '''
-    return cur_best_y, cur_best_ys, cur_best_x, cur_best_acq, cur_best_exp
+    return cur_best_y, cur_best_ys, cur_best_x, cur_best_acq, cur_best_exp, BO_bests
 
 
 
@@ -133,11 +152,14 @@ def random_func(start_size, X_init = X_init, y_init = y_init, latitude = lat, lo
 
 
 # Plot comparison:
-def plot_comparison(N, rand_cur_best, BO_cur_best):
+def plot_comparison(N, rand_cur_best, BO_cur_best, BO_sec_best, BO_third_best):
 
+    # You have to manually specify label!
     iterations = np.arange(0, N, 1)
     plt.plot(iterations, rand_cur_best, 'o-', color = 'red', label = 'Random Search')
-    plt.plot(iterations, BO_cur_best, 'o-', color='blue', label='Bayesian Optimization')
+    plt.plot(iterations, BO_cur_best, 'o-', label='BO - MPI')
+    plt.plot(iterations, BO_sec_best, 'o-', label='BO - EI')
+    plt.plot(iterations, BO_third_best, 'o-', label='BO - LCB')
     plt.legend()
     plt.xlabel('Iterations')
     plt.ylabel('Windspeed')
@@ -147,38 +169,81 @@ def plot_comparison(N, rand_cur_best, BO_cur_best):
 
 N = 50
 # BO
-BO_best_y, BO_best_ys, x_best, cur_best_acq, cur_best_exp = BO_parameter_opt(N)
+BO_best_y, BO_best_ys, x_best, cur_best_acq, cur_best_exp, BO_bests = BO_parameter_opt(N)
 
+
+# Random:
+np.random.seed(20)
+_, rand_best_ys, X_rand_best, y_rand_best = random_func(N)
+
+rand_cur_best = np.zeros(N)
+for i in range(1,N+1):
+    rand_cur_best[i-1] = np.min(rand_best_ys[:(i + len(y_init))]) # Tager alle de initial, og finder den current bedste over vores iterations.
+
+
+plot_comparison(N, rand_cur_best, BO_bests[0], BO_bests[1], BO_bests[2])
+
+print("Random values: windspeed="+str(y_rand_best)+", lon,lat ="+str(X_rand_best) + ", index=" + str(np.argmin(rand_best_ys)))
+print("Coordinates with largest wind speed: latitude=" + str(x_best[1]) + ", longitude=" + str(x_best[0])
+      + "\nAcquistion function = " + cur_best_acq + ", exploration weight = " + str(cur_best_exp))
+print("=" * 90)
+print("")
+
+
+
+"""
+random.seed(20)
 opt = GPyOpt.methods.BayesianOptimization(f=objective_function,  # function to optimize
                                                       domain=domain,
                                                       X=X_init, Y=y_init,# box-constrains of the problem
                                                       acquisition_type=cur_best_acq,  # Select acquisition function MPI, EI, LCB
-                                                      )
+                                                    )
+
 opt.acquisition.exploration_weight=cur_best_exp
             # See documentation of GPyOpt.models.base.BOModel() to see kernel type
 
 opt.run_optimization(max_iter = N)
 
-# Random:
-rand_best_ys = random_func(N)[1]
+#Manually specifying parameters for the other acquisition functions and their respective best
+# exploration weights
 
-rand_cur_best, BO_cur_best = np.zeros(N), np.zeros(N)
-for i in range(1,N+1):
-    rand_cur_best[i-1] = np.min(rand_best_ys[:(i + len(y_init))]) # Tager alle de initial, og finder den current bedste over vores iterations.
-    BO_cur_best[i-1] = np.min(opt.Y[:(i + len(y_init))])
+random.seed(20)
+opt_sec = GPyOpt.methods.BayesianOptimization(f=objective_function,  # function to optimize
+                                                      domain=domain,
+                                                      X=X_init, Y=y_init,# box-constrains of the problem
+                                                      acquisition_type='EI',  # Select acquisition function MPI, EI, LCB
+                                                      )
+
+opt_sec.acquisition.exploration_weight=1
+            # See documentation of GPyOpt.models.base.BOModel() to see kernel type
+
+opt_sec.run_optimization(max_iter = N)
+
+random.seed(20)
+opt_third = GPyOpt.methods.BayesianOptimization(f=objective_function,  # function to optimize
+                                                      domain=domain,
+                                                      X=X_init, Y=y_init,# box-constrains of the problem
+                                                      acquisition_type='LCB',  # Select acquisition function MPI, EI, LCB
+                                                      )
+
+opt_third.acquisition.exploration_weight=2
+            # See documentation of GPyOpt.models.base.BOModel() to see kernel type
+
+opt_third.run_optimization(max_iter = N)
+
+"""
 
 
-plot_comparison(N, rand_cur_best, BO_cur_best)
 
 
 
+"""
 #Plotting acquisition function, convergence:
 opt.plot_acquisition("bestModelPlot_" + cur_best_acq, label_x="Longitude", label_y="Latitude")
 #plt.show
 opt.plot_convergence("bestConvergencePlot_" + cur_best_acq)
 #plt.show
 
-print("Coordinates with largest wind speed: latitude=" + str(x_best[1]) + ", longitude=" + str(x_best[0])
-      + "\nAcquistion function = " + cur_best_acq + ", exploration weight = " + str(cur_best_exp))
-print("=" * 90)
-print("")
+opt_sec.plot_acquisition("modelPlot_EI", label_x="Longitude", label_y="Latitude")
+opt_third.plot_acquisition("modelPlot_LCB", label_x="Longitude", label_y="Latitude")
+"""
